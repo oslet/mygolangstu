@@ -10,4 +10,6 @@ func main() {
 	fmt.Println("s[:3] ==", s[:3])
 
 	fmt.Println("s[:4] ==", s[:4])
+
+	fmt.Println("s[3:] == ", s[3:])
 }
