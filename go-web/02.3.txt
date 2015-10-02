@@ -1,0 +1,51 @@
+流程控制::
+
+if:
+if x > 10 {
+    fmt.Println("x is greater than 10")
+} else {
+    fmt.Println("x is less than 10")
+}
+
+// 计算获取值x,然后根据x返回的大小，判断是否大于10。
+if x := computedValue(); x > 10 {
+    fmt.Println("x is greater than 10")
+} else {
+    fmt.Println("x is less than 10")
+}
+
+//这个地方如果这样调用就编译出错了，因为x是条件里面的变量
+fmt.Println(x)
+
+if integer == 3 {
+    fmt.Println("The integer is equal to 3")
+} else if integer < 3 {
+    fmt.Println("The integer is less than 3")
+} else {
+    fmt.Println("The integer is greater than 3")
+}
+
+goto:
+Go有goto语句——请明智地使用它。用goto跳转到必须在当前函数内定义的标签。例如假设这样一个循环：
+package main
+
+import "fmt"
+
+func main() {
+	i := 0
+Here: //这行的第一个词，以冒号结束作为标签
+	fmt.Println(i)
+	i++
+	goto Here //跳转到Here去
+}
+
+for:
+for expression1; expression2; expression3 {
+    //...
+}
+
+expression1、expression2和expression3都是表达式，
+其中expression1和expression3是变量声明或者函数调用返回值之类的，
+expression2是用来条件判断，expression1在循环开始之前调用，
+expression3在每轮循环结束之时调用。
+
