@@ -49,3 +49,144 @@ expression1、expression2和expression3都是表达式，
 expression2是用来条件判断，expression1在循环开始之前调用，
 expression3在每轮循环结束之时调用。
 
+package main
+
+import "fmt"
+
+func main() {
+	sum := 0
+	for index := 0; index < 10; index++ {
+		sum += index
+	}
+	fmt.Println("sum is equal to :", sum)
+}
+
+有些时候如果我们忽略expression1和expression3：
+sum := 1
+for ; sum < 1000; {
+	sum += sum
+}
+其中;也可以省略，那么就变成如下的代码了，是不是似曾相识？对，这就是while的功能。
+sum := 1 {
+	for sum < 1000 {
+		sum += sum 
+	}
+}
+
+在循环里面有两个关键操作break和continue ,break操作是跳出当前循环，
+continue是跳过本次循环。当嵌套过深的时候，break可以配合标签使用，
+即跳转至标签所指定的位置，详细参考如下例子：
+
+package main
+
+import "fmt"
+
+func main() {
+	for index := 10; index > 0; index-- {
+		if index == 5 {
+			//break
+			continue
+		}
+		fmt.Println(index)
+	}
+}
+// break 10、9、8、7、6
+// continue 10、9、8、7、6、4、3、2、1
+
+for配合range可以用于读取slice和map的数据：
+package main
+
+import "fmt"
+
+func main() {
+	m := map[string]float64{"a": 5, "b": 8, "c": 11}
+	for k, v := range m {
+		fmt.Println("map's key:", k)
+		fmt.Println("map's value", v)
+	}
+}
+
+由于 Go 支持 “多值返回”, 而对于“声明而未被调用”的变量, 编译器会报错, 在这种情况下, 
+可以使用_来丢弃不需要的返回值 例如
+package main
+
+import "fmt"
+
+func main() {
+	m := map[string]float64{"a": 5, "b": 8, "c": 11}
+	for _, v := range m {
+		fmt.Println("map's val:", v)
+	}
+}
+
+switch:
+switch sExpr {
+case expr1:
+    some instructions
+case expr2:
+    some other instructions
+case expr3:
+    some other instructions
+default:
+    other code
+}
+
+sExpr和expr1、expr2、expr3的类型必须一致。Go的switch非常灵活，
+表达式不必是常量或整数，执行的过程从上至下，直到找到匹配项；
+而如果switch没有表达式，它会匹配true。
+package main
+
+import "fmt"
+
+func main() {
+	i := 10
+	switch i {
+	case 1:
+		fmt.Println("i is equal to 1")
+	case 2, 3, 4:
+		fmt.Println("i is equal to 2, 3 or 4")
+	case 10:
+		fmt.Println("i is equal to 10")
+	default:
+		fmt.Println("All I know is that i is an integer")
+	}
+}
+
+在第5行中，我们把很多值聚合在了一个case里面，同时，Go里面switch默认相当于每个case最后带有break，
+匹配成功后不会自动向下执行其他case，而是跳出整个switch, 
+但是可以使用fallthrough强制执行后面的case代码。
+package main
+
+import "fmt"
+
+func main() {
+	integer := 6
+	switch integer {
+	case 4:
+		fmt.Println("The integer was  <=4")
+		fallthrough
+	case 5:
+		fmt.Println("The integer was <=5")
+		fallthrough
+	case 6:
+		fmt.Println("The integer was <=6")
+		fallthrough
+	case 7:
+		fmt.Println("The integer was <=7")
+		fallthrough
+	case 8:
+		fmt.Println("The integer was <=8")
+		fallthrough
+	default:
+		fmt.Println("default case")
+	}
+}
+输出如下:
+/*
+The integer was <= 6
+The integer was <= 7
+The integer was <= 8
+default case
+*/
+
+函数::
