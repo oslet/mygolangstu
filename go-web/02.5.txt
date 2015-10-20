@@ -63,3 +63,124 @@ func main() {
 method里面可以访问接收者的字段
 调用method通过.访问，就像struct里面访问字段一样
 
+package main
+import "fmt"
+
+const(
+    WHITE = iota
+    BLACK
+    BLUE
+    RED
+    YELLOW
+)
+
+type Color byte
+
+type Box struct {
+    width, height, depth float64
+    color Color
+}
+
+type BoxList []Box //a slice of boxes
+
+func (b Box) Volume() float64 {
+    return b.width * b.height * b.depth
+}
+
+func (b *Box) SetColor(c Color) {
+    b.color = c
+}
+
+func (bl BoxList) BiggestColor() Color {
+    v := 0.00
+    k := Color(WHITE)
+    for _, b := range bl {
+        if bv := b.Volume(); bv > v {
+            v = bv
+            k = b.color
+        }
+    }
+    return k
+}
+
+func (bl BoxList) PaintItBlack() {
+    for i, _ := range bl {
+        bl[i].SetColor(BLACK)
+    }
+}
+
+func (c Color) String() string {
+    strings := []string {"WHITE", "BLACK", "BLUE", "RED", "YELLOW"}
+    return strings[c]
+}
+
+func main() {
+    boxes := BoxList {
+        Box{4, 4, 4, RED},
+        Box{10, 10, 1, YELLOW},
+        Box{1, 1, 20, BLACK},
+        Box{10, 10, 1, BLUE},
+        Box{10, 30, 1, WHITE},
+        Box{20, 20, 20, YELLOW},
+    }
+
+    fmt.Printf("We have %d boxes in our set\n", len(boxes))
+    fmt.Println("The volume of the first one is", boxes[0].Volume(), "cm³")
+    fmt.Println("The color of the last one is",boxes[len(boxes)-1].color.String())
+    fmt.Println("The biggest one is", boxes.BiggestColor().String())
+
+    fmt.Println("Let's paint them all black")
+    boxes.PaintItBlack()
+    fmt.Println("The color of the second one is", boxes[1].color.String())
+
+    fmt.Println("Obviously, now, the biggest one is", boxes.BiggestColor().String())
+}
+
+上面的代码通过const定义了一些常量，然后定义了一些自定义类型
+1. Color作为byte的别名
+2. 定义了一个struct:Box，含有三个长宽高字段和一个颜色属性
+3. 定义了一个slice:BoxList，含有Box
+然后以上面的自定义类型为接收者定义了一些method
+1. Volume()定义了接收者为Box，返回Box的容量
+2. SetColor(c Color)，把Box的颜色改为c
+3. BiggestColor()定在在BoxList上面，返回list里面容量最大的颜色
+4. PaintItBlack()把BoxList里面所有Box的颜色全部变成黑色
+5. String()定义在Color上面，返回Color的具体颜色(字符串格式)
+
+method继承:
+package main
+
+import "fmt"
+
+type Human struct {
+	name  string
+	age   int
+	phone string
+}
+
+type Student struct {
+	Human
+	school string
+}
+
+type Employee struct {
+	Human
+	company string
+}
+
+func (h *Human) SayHi() {
+	fmt.Printf("Hi, I am %s you can call me on %s\n", h.name, h.age)
+}
+
+func main() {
+	mark := Student{Human{"Mark", 25, "222-222-yyyy"}, "MIT"}
+	sam := Employee{Human{"Sam", 45, "111-888-yyyy"}, "Golang Inc"}
+
+	mark.SayHi()
+	sam.SayHi()
+}
+
+//output 
+Hi, I am Mark you can call me on %!s(int=25)
+Hi, I am Sam you can call me on %!s(int=45)
+
