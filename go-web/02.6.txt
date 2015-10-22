@@ -1,0 +1,154 @@
+interface::
+interface是一组method的组合，我们通过interface来定义对象的一组行为。
+
+interface类型:
+type Human struct {
+    name string
+    age int
+    phone string
+}
+
+type Student struct {
+    Human //匿名字段Human
+    school string
+    loan float32
+}
+
+type Employee struct {
+    Human //匿名字段Human
+    company string
+    money float32
+}
+
+//Human对象实现Sayhi方法
+func (h *Human) SayHi() {
+    fmt.Printf("Hi, I am %s you can call me on %s\n", h.name, h.phone)
+}
+
+// Human对象实现Sing方法
+func (h *Human) Sing(lyrics string) {
+    fmt.Println("La la, la la la, la la la la la...", lyrics)
+}
+
+//Human对象实现Guzzle方法
+func (h *Human) Guzzle(beerStein string) {
+    fmt.Println("Guzzle Guzzle Guzzle...", beerStein)
+}
+
+// Employee重载Human的Sayhi方法
+func (e *Employee) SayHi() {
+    fmt.Printf("Hi, I am %s, I work at %s. Call me on %s\n", e.name,
+        e.company, e.phone) //此句可以分成多行
+}
+
+//Student实现BorrowMoney方法
+func (s *Student) BorrowMoney(amount float32) {
+    s.loan += amount // (again and again and...)
+}
+
+//Employee实现SpendSalary方法
+func (e *Employee) SpendSalary(amount float32) {
+    e.money -= amount // More vodka please!!! Get me through the day!
+}
+
+// 定义interface
+type Men interface {
+    SayHi()
+    Sing(lyrics string)
+    Guzzle(beerStein string)
+}
+
+type YoungChap interface {
+    SayHi()
+    Sing(song string)
+    BorrowMoney(amount float32)
+}
+
+type ElderlyGent interface {
+    SayHi()
+    Sing(song string)
+    SpendSalary(amount float32)
+}
+
+interface值:
+
+package main
+
+import "fmt"
+
+type Human struct {
+	name  string
+	age   int
+	phone string
+}
+
+type Student struct {
+	Human
+	school string
+	loan   float32
+}
+
+type Employee struct {
+	Human
+	company string
+	money   float32
+}
+
+func (h Human) SayHi() {
+	fmt.Printf("Hi, I am %s you can call me on %s\n", h.name, h.phone)
+}
+
+func (h Human) Sing(lyrics string) {
+	fmt.Println("La la la la...", lyrics)
+}
+
+func (e Employee) SayHi() {
+	fmt.Printf("Hi, I am %s, I work at %s. Call me on %s\n", e.name, e.company, e.phone)
+}
+
+type Men interface {
+	SayHi()
+	Sing(lyrics string)
+}
+
+func main() {
+	mike := Student{Human{"Mike", 25, "222-222-XXX"}, "MIT", 0.00}
+	paul := Student{Human{"Paul", 26, "111-222-XXX"}, "Harvard", 100}
+	sam := Employee{Human{"Sam", 36, "444-222-XXX"}, "Golang Inc.", 1000}
+	Tom := Employee{Human{"Tom", 37, "222-444-XXX"}, "Things Ltd.", 5000}
+
+	var i Men
+
+	i = mike
+	fmt.Println("This is Mike, a Student:")
+	i.SayHi()
+	i.Sing("November rain")
+
+	i = Tom
+	fmt.Println("This is Tom, an Employee:")
+	i.SayHi()
+	i.Sing("Born to be wild")
+
+	fmt.Println("Let's use a slice of Men and see what happnes")
+	x := make([]Men, 3)
+
+	x[0], x[1], x[2] = paul, sam, mike
+
+	for _, value := range x {
+		value.SayHi()
+	}
+}
+
+//output:
+This is Mike, a Student:
+Hi, I am Mike you can call me on 222-222-XXX
+La la la la... November rain
+This is Tom, an Employee:
+Hi, I am Tom, I work at Things Ltd.. Call me on 222-444-XXX
+La la la la... Born to be wild
+Let's use a slice of Men and see what happnes
+Hi, I am Paul you can call me on 111-222-XXX
+Hi, I am Sam, I work at Golang Inc.. Call me on 444-222-XXX
+Hi, I am Mike you can call me on 222-222-XXX
+
+
