@@ -1,0 +1,102 @@
+使用MySQL数据库::
+
+MySQL驱动:
+Go中支持MySQL的驱动目前比较多，有如下几种，有些是支持database/sql标准，而有些是采用了自己的实现接口,常用的有如下几种:
+
+https://github.com/go-sql-driver/mysql 支持database/sql，全部采用go写。
+https://github.com/ziutek/mymysql 支持database/sql，也支持自定义的接口，全部采用go写。
+https://github.com/Philio/GoMySQL 不支持database/sql，自定义接口，全部采用go写。
+
+example:
+
+接下来的几个小节里面我们都将采用同一个数据库表结构：数据库test，用户表userinfo，关联用户信息表userdetail。
+
+CREATE TABLE `userinfo` (
+    `uid` INT(10) NOT NULL AUTO_INCREMENT,
+    `username` VARCHAR(64) NULL DEFAULT NULL,
+    `departname` VARCHAR(64) NULL DEFAULT NULL,
+    `created` DATE NULL DEFAULT NULL,
+    PRIMARY KEY (`uid`)
+)
+
+CREATE TABLE `userdetail` (
+    `uid` INT(10) NOT NULL DEFAULT '0',
+    `intro` TEXT NULL,
+    `profile` TEXT NULL,
+    PRIMARY KEY (`uid`)
+)
+
+
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+)
+
+func main() {
+	db, err := sql.Open("mysql", "root:eletmc@(127.0.0.1:3306)/gostu?charset=utf8")
+	checkErr(err)
+
+	stmt, err := db.Prepare("insert userinfo set username=?,departname=?,created=?")
+	checkErr(err)
+
+	res, err := stmt.Exec("oslet", "develop group", "2015-11-14")
+	checkErr(err)
+
+	id, err := res.LastInsertId()
+	checkErr(err)
+
+	fmt.Println(id)
+
+	stmt, err = db.Prepare("update userinfo set username=? where uid=?")
+	checkErr(err)
+
+	res, err = stmt.Exec("osletupdate", id)
+	checkErr(err)
+
+	affect, err := res.RowsAffected()
+	checkErr(err)
+
+	fmt.Println(affect)
+
+	//查询数据
+	rows, err := db.Query("select * from  userinfo")
+	checkErr(err)
+
+	for rows.Next() {
+		var uid int
+		var username string
+		var department string
+		var created string
+		err = rows.Scan(&uid, &username, &department, &created)
+		checkErr(err)
+		fmt.Println(uid)
+		fmt.Println(username)
+		fmt.Println(department)
+		fmt.Println(created)
+	}
+
+	//删除数据
+	stmt, err = db.Prepare("delete from userinfo where uid=?")
+	checkErr(err)
+
+	res, err = stmt.Exec(id)
+	checkErr(err)
+
+	affect, err = res.RowsAffected()
+	checkErr(err)
+
+	fmt.Println(affect)
+
+	db.Close()
+}
+
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+
