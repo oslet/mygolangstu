@@ -1,0 +1,130 @@
+xml处理::
+
+<?xml version="1.0" encoding="utf-8"?>
+<servers version="1">
+	<server>
+		<serverName>Shanghai_VPN</serverName>
+		<serverIP>127.0.0.1</serverIP>
+	</server>
+	<server>
+		<serverName>Beijing_VPN</serverName>
+		<serverIP>127.0.0.2</serverIP>
+	</server>
+</servers>
+
+解析XML:
+
+如何解析如上这个XML文件呢？ 我们可以通过xml包的Unmarshal函数来达到我们的目的
+
+func Unmarshal(data []byte, v interface{}) error
+
+package main
+
+import (
+    "encoding/xml"
+    "fmt"
+    "io/ioutil"
+    "os"
+)
+
+type Recurlyservers struct {
+    XMLName     xml.Name `xml:"servers"`
+    Version     string   `xml:"version,attr"`
+    Svs         []server `xml:"server"`
+    Description string   `xml:",innerxml"`
+}
+
+type server struct {
+    XMLName    xml.Name `xml:"server"`
+    ServerName string   `xml:"serverName"`
+    ServerIP   string   `xml:"serverIP"`
+}
+
+func main() {
+    file, err := os.Open("servers.xml") // For read access.     
+    if err != nil {
+        fmt.Printf("error: %v", err)
+        return
+    }
+    defer file.Close()
+    data, err := ioutil.ReadAll(file)
+    if err != nil {
+        fmt.Printf("error: %v", err)
+        return
+    }
+    v := Recurlyservers{}
+    err = xml.Unmarshal(data, &v)
+    if err != nil {
+        fmt.Printf("error: %v", err)
+        return
+    }
+
+    fmt.Println(v)
+}
+
+//output:
+{{ servers} 1 [{{ server} Shanghai_VPN 127.0.0.1} {{ server} Beijing_VPN 127.0.0.2}]
+<server>
+    <serverName>Shanghai_VPN</serverName>
+    <serverIP>127.0.0.1</serverIP>
+</server>
+<server>
+    <serverName>Beijing_VPN</serverName>
+    <serverIP>127.0.0.2</serverIP>
+</server>
+}
+
+
+输出XML:
+假若我们不是要解析如上所示的XML文件，而是生成它，那么在go语言中又该如何实现呢？ 
+xml包中提供了Marshal和MarshalIndent两个函数，来满足我们的需求
+这两个函数主要的区别是第二个函数会增加前缀和缩进
+func Marshal(v interface{}) ([]byte, error)
+func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error)
+
+package main
+
+import (
+    "encoding/xml"
+    "fmt"
+    "os"
+)
+
+type Servers struct {
+    XMLName xml.Name `xml:"servers"`
+    Version string   `xml:"version,attr"`
+    Svs     []server `xml:"server"`
+}
+
+type server struct {
+    ServerName string `xml:"serverName"`
+    ServerIP   string `xml:"serverIP"`
+}
+
+func main() {
+    v := &Servers{Version: "1"}
+    v.Svs = append(v.Svs, server{"Shanghai_VPN", "127.0.0.1"})
+    v.Svs = append(v.Svs, server{"Beijing_VPN", "127.0.0.2"})
+    output, err := xml.MarshalIndent(v, "  ", "    ")
+    if err != nil {
+        fmt.Printf("error: %v\n", err)
+    }
+    os.Stdout.Write([]byte(xml.Header))
+
+    os.Stdout.Write(output)
+}
+//output:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<servers version="1">
+<server>
+    <serverName>Shanghai_VPN</serverName>
+    <serverIP>127.0.0.1</serverIP>
+</server>
+<server>
+    <serverName>Beijing_VPN</serverName>
+    <serverIP>127.0.0.2</serverIP>
+</server>
+</servers>
+
+
