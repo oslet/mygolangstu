@@ -1,0 +1,139 @@
+7.2 JSON处理::
+
+解析到结构体:
+
+{"servers":[{"serverName":"Shanghai_VPN","serverIP":"127.0.0.1"},{"serverName":"Beijing_VPN","serverIP":"127.0.0.2"}]}
+
+假如有了上面的JSON串，那么我们如何来解析这个JSON串呢？Go的JSON包中有如下函数
+
+func Unmarshal(data []byte, v interface{}) error
+
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+)
+
+type Server struct {
+    ServerName string
+    ServerIP   string
+}
+
+type Serverslice struct {
+    Servers []Server
+}
+
+func main() {
+    var s Serverslice
+    str := `{"servers":[{"serverName":"Shanghai_VPN","serverIP":"127.0.0.1"},{"serverName":"Beijing_VPN","serverIP":"127.0.0.2"}]}`
+    json.Unmarshal([]byte(str), &s)
+    fmt.Println(s)
+}
+//output:
+{[{Shanghai_VPN 127.0.0.1} {Beijing_VPN 127.0.0.2}]}
+
+
+解析到interface:
+上面那种解析方式是在我们知晓被解析的JSON数据的结构的前提下采取的方案，
+如果我们不知道被解析的数据的格式，又应该如何来解析呢？
+
+我们知道interface{}可以用来存储任意数据类型的对象，这种数据结构正好用于存储解析的未知结构的json数据的结果
+
+Go类型和JSON类型的对应关系如下：
+
+bool 代表 JSON booleans,
+float64 代表 JSON numbers,
+string 代表 JSON strings,
+nil 代表 JSON null.
+
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+func main() {
+
+	var f interface{}
+	b := []byte(`{"Name":"Wednesday","Age":6,"Parents":["Gomez","Morticia"]}`)
+
+	f = map[string]interface{}{
+		"Name": "Wednesday",
+		"Age":  6,
+		"Parents": []interface{}{
+			"Gomez",
+			"Morticia",
+		},
+	}
+
+	m := f.(map[string]interface{})
+
+	for k, v := range m {
+		switch vv := v.(type) {
+		case string:
+			fmt.Println(k, "is string", vv)
+		case int:
+			fmt.Println(k, "is int", vv)
+		case float64:
+			fmt.Println(k, "is float64", vv)
+		case []interface{}:
+			fmt.Println(k, "is an array:")
+			for i, u := range vv {
+				fmt.Println(i, u)
+			}
+		default:
+			fmt.Println(k, "is of a type I don't know how to handle")
+		}
+	}
+
+	err := json.Unmarshal(b, &f)
+	if err != nil {
+		panic(err)
+	}
+}
+//output:
+Name is string Wednesday
+Age is int 6
+Parents is an array:
+0 Gomez
+1 Morticia
+
+
+生成JSON:
+
+func Marshal(v interface{}) ([]byte, error)
+
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+)
+
+type Server struct {
+    ServerName string
+    ServerIP   string
+}
+
+type Serverslice struct {
+    Servers []Server
+}
+
+func main() {
+    var s Serverslice
+    s.Servers = append(s.Servers, Server{ServerName: "Shanghai_VPN", ServerIP: "127.0.0.1"})
+    s.Servers = append(s.Servers, Server{ServerName: "Beijing_VPN", ServerIP: "127.0.0.2"})
+    b, err := json.Marshal(s)
+    if err != nil {
+        fmt.Println("json err:", err)
+    }
+    fmt.Println(string(b))
+}
+//output
+{"Servers":[{"ServerName":"Shanghai_VPN","ServerIP":"127.0.0.1"},{"ServerName":"Beijing_VPN","ServerIP":"127.0.0.2"}]}
+
+
+
+
