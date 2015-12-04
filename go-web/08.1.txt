@@ -1,0 +1,299 @@
+8.1 Socket编程::
+
+Socket起源于Unix，而Unix基本哲学之一就是“一切皆文件”，都可以用“打开open –> 读写
+write/read –> 关闭close”模式来操作。Socket就是该模式的一个实现，网络的Socket数据传输
+是一种特殊的I/O，Socket也是一种文件描述符
+常用的Socket类型有两种：流式Socket（SOCKSTREAM）和数据报式Socket（SOCKDGRAM）
+
+package main
+import (
+    "net"
+    "os"
+    "fmt"
+)
+func main() {
+    if len(os.Args) != 2 {
+        fmt.Fprintf(os.Stderr, "Usage: %s ip-addr\n", os.Args[0])
+        os.Exit(1)
+    }
+    name := os.Args[1]
+    addr := net.ParseIP(name)
+    if addr == nil {
+        fmt.Println("Invalid address")
+    } else {
+        fmt.Println("The address is ", addr.String())
+    }
+    os.Exit(0)
+}
+
+
+TCP Socket:
+func (c *TCPConn) Write(b []byte) (n int, err os.Error)
+func (c *TCPConn) Read(b []byte) (n int, err os.Error)
+TCPConn可以用在客户端和服务器端来读写数据。
+
+
+TCP client:
+Go语言中通过net包中的DialTCP函数来建立一个TCP连接，并返回一个TCPConn类型的对象
+
+func DialTCP(net string, laddr, raddr *TCPAddr) (c *TCPConn, err os.Error)
+net参数是"tcp4"、"tcp6"、"tcp"中的任意一个，分别表示TCP(IPv4-only)、TCP(IPv6-only)
+或者TCP(IPv4,IPv6的任意一个)
+laddr表示本机地址，一般设置为nil
+raddr表示远程的服务地址
+
+模拟一个基于HTTP协议的客户端请求去连接一个Web服务端代码:
+
+package main
+
+import (
+    "fmt"
+    "io/ioutil"
+    "net"
+    "os"
+)
+
+func main() {
+    if len(os.Args) != 2 {
+        fmt.Fprintf(os.Stderr, "Usage: %s host:port ", os.Args[0])
+        os.Exit(1)
+    }
+    service := os.Args[1]
+    tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
+    checkError(err)
+    conn, err := net.DialTCP("tcp", nil, tcpAddr)
+    checkError(err)
+    _, err = conn.Write([]byte("HEAD / HTTP/1.0\r\n\r\n"))
+    checkError(err)
+    result, err := ioutil.ReadAll(conn)
+    checkError(err)
+    fmt.Println(string(result))
+    os.Exit(0)
+}
+func checkError(err error) {
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
+        os.Exit(1)
+    }
+}
+
+
+TCP server:
+
+实现一个简单的时间同步服务，监听7777端口:
+package main
+
+import (
+    "fmt"
+    "net"
+    "os"
+    "time"
+)
+
+func main() {
+    service := ":7777"
+    tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
+    checkError(err)
+    listener, err := net.ListenTCP("tcp", tcpAddr)
+    checkError(err)
+    for {
+        conn, err := listener.Accept()
+        if err != nil {
+            continue
+        }
+        daytime := time.Now().String()
+        conn.Write([]byte(daytime)) // don't care about return value
+        conn.Close()                // we're finished with this client
+    }
+}
+func checkError(err error) {
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
+        os.Exit(1)
+    }
+}
+
+以上为单任务，支持多并发如下:
+package main
+
+import (
+    "fmt"
+    "net"
+    "os"
+    "time"
+)
+
+func main() {
+    service := ":1200"
+    tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
+    checkError(err)
+    listener, err := net.ListenTCP("tcp", tcpAddr)
+    checkError(err)
+    for {
+        conn, err := listener.Accept()
+        if err != nil {
+            continue
+        }
+        go handleClient(conn)
+    }
+}
+
+func handleClient(conn net.Conn) {
+    defer conn.Close()
+    daytime := time.Now().String()
+    conn.Write([]byte(daytime)) // don't care about return value
+    // we're finished with this client
+}
+func checkError(err error) {
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
+        os.Exit(1)
+    }
+}
+
+通过把业务处理分离到函数handleClient，我们就可以进一步地实现多并发执行了
+
+从客户端发送不同的请求来获取不同的时间格式代码如下:
+
+package main
+
+import (
+    "fmt"
+    "net"
+    "os"
+    "time"
+    "strconv"
+)
+
+func main() {
+    service := ":1200"
+    tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
+    checkError(err)
+    listener, err := net.ListenTCP("tcp", tcpAddr)
+    checkError(err)
+    for {
+        conn, err := listener.Accept()
+        if err != nil {
+            continue
+        }
+        go handleClient(conn)
+    }
+}
+
+func handleClient(conn net.Conn) {
+    conn.SetReadDeadline(time.Now().Add(2 * time.Minute)) // set 2 minutes timeout
+    request := make([]byte, 128) // set maxium request length to 128KB to prevent flood attack
+    defer conn.Close()  // close connection before exit
+    for {
+        read_len, err := conn.Read(request)
+
+        if err != nil {
+            fmt.Println(err)
+            break
+        }
+
+        if read_len == 0 {
+            break // connection already closed by client
+        } else if string(request) == "timestamp" {
+            daytime := strconv.FormatInt(time.Now().Unix(), 10)
+            conn.Write([]byte(daytime))
+        } else {
+            daytime := time.Now().String()
+            conn.Write([]byte(daytime)) 
+        }
+
+        request = make([]byte, 128) // clear last read content
+    }
+}
+
+func checkError(err error) {
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
+        os.Exit(1)
+    }
+}
+
+
+UDP Socket:
+Go语言包中处理UDP Socket和TCP Socket不同的地方就是在服务器端处理多个客户端请求数据包的
+方式不同,UDP缺少了对客户端连接请求的Accept函数。其他基本几乎一模一样，只有TCP换成了UDP
+
+func ResolveUDPAddr(net, addr string) (*UDPAddr, os.Error)
+func DialUDP(net string, laddr, raddr *UDPAddr) (c *UDPConn, err os.Error)
+func ListenUDP(net string, laddr *UDPAddr) (c *UDPConn, err os.Error)
+func (c *UDPConn) ReadFromUDP(b []byte) (n int, addr *UDPAddr, err os.Error
+func (c *UDPConn) WriteToUDP(b []byte, addr *UDPAddr) (n int, err os.Error)
+
+udp客户端代码:
+
+package main
+
+import (
+    "fmt"
+    "net"
+    "os"
+)
+
+func main() {
+    if len(os.Args) != 2 {
+        fmt.Fprintf(os.Stderr, "Usage: %s host:port", os.Args[0])
+        os.Exit(1)
+    }
+    service := os.Args[1]
+    udpAddr, err := net.ResolveUDPAddr("udp4", service)
+    checkError(err)
+    conn, err := net.DialUDP("udp", nil, udpAddr)
+    checkError(err)
+    _, err = conn.Write([]byte("anything"))
+    checkError(err)
+    var buf [512]byte
+    n, err := conn.Read(buf[0:])
+    checkError(err)
+    fmt.Println(string(buf[0:n]))
+    os.Exit(0)
+}
+func checkError(err error) {
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Fatal error ", err.Error())
+        os.Exit(1)
+    }
+}
+
+
+udp服务端代码:
+
+package main
+
+import (
+    "fmt"
+    "net"
+    "os"
+    "time"
+)
+
+func main() {
+    service := ":1200"
+    udpAddr, err := net.ResolveUDPAddr("udp4", service)
+    checkError(err)
+    conn, err := net.ListenUDP("udp", udpAddr)
+    checkError(err)
+    for {
+        handleClient(conn)
+    }
+}
+func handleClient(conn *net.UDPConn) {
+    var buf [512]byte
+    _, addr, err := conn.ReadFromUDP(buf[0:])
+    if err != nil {
+        return
+    }
+    daytime := time.Now().String()
+    conn.WriteToUDP([]byte(daytime), addr)
+}
+func checkError(err error) {
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Fatal error ", err.Error())
+        os.Exit(1)
+    }
+}
+
