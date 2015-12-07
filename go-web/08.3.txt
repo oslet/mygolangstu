@@ -1,0 +1,47 @@
+8.3 REST::
+
+RESTful架构:
+（1）每一个URI代表一种资源；
+（2）客户端和服务器之间，传递这种资源的某种表现层；
+（3）客户端通过四个HTTP动词，对服务器端资源进行操作，实现"表现层状态转化"。
+
+package main
+
+import (
+    "fmt"
+    "github.com/drone/routes"
+    "net/http"
+)
+
+func getuser(w http.ResponseWriter, r *http.Request) {
+    params := r.URL.Query()
+    uid := params.Get(":uid")
+    fmt.Fprintf(w, "you are get user %s", uid)
+}
+
+func modifyuser(w http.ResponseWriter, r *http.Request) {
+    params := r.URL.Query()
+    uid := params.Get(":uid")
+    fmt.Fprintf(w, "you are modify user %s", uid)
+}
+
+func deleteuser(w http.ResponseWriter, r *http.Request) {
+    params := r.URL.Query()
+    uid := params.Get(":uid")
+    fmt.Fprintf(w, "you are delete user %s", uid)
+}
+
+func adduser(w http.ResponseWriter, r *http.Request) {
+    uid := r.FormValue("uid")
+    fmt.Fprint(w, "you are add user %s", uid)
+}
+
+func main() {
+    mux := routes.New()
+    mux.Get("/user/:uid", getuser)
+    mux.Post("/user/", adduser)
+    mux.Del("/user/:uid", deleteuser)
+    mux.Put("/user/:uid", modifyuser)
+    http.Handle("/", mux)
+    http.ListenAndServe(":8088", nil)
+}
