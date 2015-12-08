@@ -1,0 +1,110 @@
+8.4 RPC::
+
+RPC就是想实现函数调用模式的网络化。客户端就像调用本地函数一样，然后客户端把这些参数打包之后
+通过网络传递到服务端，服务端解包到处理过程中执行，然后执行的结果反馈给客户端。
+
+RPC（Remote Procedure Call Protocol）——远程过程调用协议，是一种通过网络从远程计算机程序
+上请求服务，而不需要了解底层网络技术的协议
+
+Go RPC:
+Go RPC的函数只有符合下面的条件才能被远程访问，不然会被忽略
+1.函数必须是导出的(首字母大写)
+2.必须有两个导出类型的参数，
+3.第一个参数是接收的参数，第二个参数是返回给客户端的参数，第二个参数必须是指针类型的
+4.函数还要有一个返回值error
+
+go rpc 服务端实现如下
+package main
+
+import (
+    "errors"
+    "fmt"
+    "net/http"
+    "net/rpc"
+)
+
+type Args struct {
+    A, B int
+}
+
+type Quotient struct {
+    Quo, Rem int
+}
+
+type Arith int
+
+func (t *Arith) Multiply(args *Args, reply *int) error {
+    *reply = args.A * args.B
+    return nil
+}
+
+func (t *Arith) Divide(args *Args, quo *Quotient) error {
+    if args.B == 0 {
+        return errors.New("divide by zero")
+    }
+    quo.Quo = args.A / args.B
+    quo.Rem = args.A % args.B
+    return nil
+}
+
+func main() {
+
+    arith := new(Arith)
+    rpc.Register(arith)
+    rpc.HandleHTTP()
+
+    err := http.ListenAndServe(":1234", nil)
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+}
+
+客户端代码如下:
+package main
+
+import (
+    "fmt"
+    "log"
+    "net/rpc"
+    "os"
+)
+
+type Args struct {
+    A, B int
+}
+
+type Quotient struct {
+    Quo, Rem int
+}
+
+func main() {
+    if len(os.Args) != 2 {
+        fmt.Println("Usage: ", os.Args[0], "server")
+        os.Exit(1)
+    }
+    serverAddress := os.Args[1]
+
+    client, err := rpc.DialHTTP("tcp", serverAddress+":1234")
+    if err != nil {
+        log.Fatal("dialing:", err)
+    }
+    // Synchronous call
+    args := Args{17, 8}
+    var reply int
+    err = client.Call("Arith.Multiply", args, &reply)
+    if err != nil {
+        log.Fatal("arith error:", err)
+    }
+    fmt.Printf("Arith: %d*%d=%d\n", args.A, args.B, reply)
+
+    var quot Quotient
+    err = client.Call("Arith.Divide", args, &quot)
+    if err != nil {
+        log.Fatal("arith error:", err)
+    }
+    fmt.Printf("Arith: %d/%d=%d remainder %d\n", args.A, args.B, quot.Quo, quot.Rem)
+
+}
+//output:
+Arith: 17*8=136
+Arith: 17/8=2 remainder 1
