@@ -1,0 +1,104 @@
+9.6 加密和解密数据::
+
+base64加解密:
+
+package main
+
+import (
+    "encoding/base64"
+    "fmt"
+)
+
+func base64Encode(src []byte) []byte {
+    return []byte(base64.StdEncoding.EncodeToString(src))
+}
+
+func base64Decode(src []byte) ([]byte, error) {
+    return base64.StdEncoding.DecodeString(string(src))
+}
+
+func main() {
+    // encode
+    hello := "你好，世界！ hello world"
+    debyte := base64Encode([]byte(hello))
+    fmt.Println(debyte)
+    // decode
+    enbyte, err := base64Decode(debyte)
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+
+    if hello != string(enbyte) {
+        fmt.Println("hello is not equal to enbyte")
+    }
+
+    fmt.Println(string(enbyte))
+}
+//output
+[53 76 50 103 53 97 87 57 55 55 121 77 53 76 105 87 53 53 87 77 73 83 66 111 90 87 120 115 98 121 66 51 98 51 74 115 90 65 61 61]
+你好，世界! hello world
+
+高级加解密:
+
+package main
+
+import (
+	"crypto/aes"
+	"crypto/cipher"
+	"fmt"
+	"os"
+)
+
+var commonIV = []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+	0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f}
+
+func main() {
+	plaintext := []byte("My name is oslet")
+
+	if len(os.Args) > 1 {
+		plaintext = []byte(os.Args[1])
+	}
+
+	key_text := "oslet.abcdefghij"
+	if len(os.Args) > 2 {
+		key_text = os.Args[2]
+	}
+
+	fmt.Println(len(key_text))
+
+	c, err := aes.NewCipher([]byte(key_text))
+	if err != nil {
+		fmt.Printf("Error: NewCipher(%d bytes) = %s", len(key_text), err)
+		os.Exit(-1)
+	}
+
+	cfb := cipher.NewCFBEncrypter(c, commonIV)
+	ciphertext := make([]byte, len(plaintext))
+	cfb.XORKeyStream(ciphertext, plaintext)
+	fmt.Printf("%s=>%x\n", plaintext, ciphertext)
+
+	cfbdec := cipher.NewCFBDecrypter(c, commonIV)
+	plaintextCopy := make([]byte, len(plaintext))
+	cfbdec.XORKeyStream(plaintextCopy, ciphertext)
+	fmt.Printf("%x=>%s\n", ciphertext, plaintextCopy)
+}
+//otuput:
+16
+My name is oslet=>713bcf8529945176ac5143a75cf63db9
+713bcf8529945176ac5143a75cf63db9=>My name is oslet
+
+上面通过调用函数aes.NewCipher(参数key必须是16、24或者32位的[]byte，分别对应AES-128,
+ AES-192或AES-256算法),返回了一个cipher.Block接口，这个接口实现了三个功能：
+
+type Block interface {
+    // BlockSize returns the cipher's block size.
+    BlockSize() int
+
+    // Encrypt encrypts the first block in src into dst.
+    // Dst and src may point at the same memory.
+    Encrypt(dst, src []byte)
+
+    // Decrypt decrypts the first block in src into dst.
+    // Dst and src may point at the same memory.
+    Decrypt(dst, src []byte)
+}
