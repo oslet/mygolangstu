@@ -1,0 +1,38 @@
+基本词法:
+
+分为5类
+
+1.标识符(identifier)
+一个标识符可以代表一个变量或一个类型，由若干字母，下划线，数字组成，字符序列第一个字符必须为
+字母。
+预定义标识符:
+1)所有基本数据类型的名称
+2)接口类型error
+3)所有内建函数的名称 append,cap,close,complex,copy,delete,imag,len,make,new,panic
+print,println,real,recover
+4)常量true,false,iota
+5) _, 下划线表示，声明了变量没有使用，或者导入某个代码包中初始化函数
+
+
+2.关键字(keyword)
+1)程序声明 import,package
+2)程序实体声明与定义 chan,const,func,interface,map,struct,type,var
+3)程序流程控制 go,select,break,case,continue,default,defer,else,fallthrough,for,
+goto,if,range,return,switch.
+
+3.操作符(operator)
+1)一元操作符 +,-,!,^,*,&,<-
+2)二元操作符是由两个操作数组成,go语言中没有三元操作符
+
+4.分隔符(delimiter)
+
+5字面量(literal)
+表示值的一个标记法。
+1)表示基础数据类型值的各种字面量. 如12E-3
+2)用于构造自定义复合数据类型的类型字面量。如Persion
+type Persion {
+	Name	string
+	Age		unit8
+	Address	string
+}
+3)用于表示复合数据类型值的复合字面量，它会被用来构造类型struct,array,slice,map的值.
